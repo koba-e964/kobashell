@@ -1,18 +1,19 @@
 CC = gcc
 CFLAGS = -O2 -Wall
 
-EXECS = myexec ish
+EXECS = ish
 
-ISH_DEP = parser/parse.c parser/print.c
+ISH_DEP = ish.c parser/parse.c parser/print.c
+
 
 .PHONY : all
 all : $(EXECS)
 
-% : %.c
+%.o : %.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-ish : ish.c $(ISH_DEP)
-	$(CC) $(CFLAGS) -o $@ $< $(ISH_DEP)
+ish : $(ISH_DEP)
+	$(CC) $(CFLAGS) -o $@ $(ISH_DEP)
 
 .PHONY : clean
 clean :
