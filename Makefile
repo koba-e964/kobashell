@@ -3,19 +3,18 @@ CFLAGS = -O2 -Wall
 
 EXECS = ish
 
-ISH_DEP = ish.c parser/parse.c parser/print.c
-
+ISH_DEP =ish.c parser/parse.c parser/print.c
+ISH_OBJS=$(ISH_DEP:.c=.o)
 
 .PHONY : all
 all : $(EXECS)
 
 %.o : %.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-ish : $(ISH_DEP)
-	$(CC) $(CFLAGS) -o $@ $(ISH_DEP)
+ish : $(ISH_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(ISH_OBJS)
 
 .PHONY : clean
 clean :
-	rm -f *.o a.out $(EXECS)
-
+	rm -f $(ISH_OBJS) $(EXECS)
