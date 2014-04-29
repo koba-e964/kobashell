@@ -30,7 +30,7 @@ void int_list_free(int_list *ptr) {
 
 /*
   Executes a job.
-  cleanup: No file descriptors are NOT closed.
+  cleanup: NO file descriptors are closed.
 */
 void execute_job(job* job,char *const envp[]) {
   pid_t pid;
@@ -81,6 +81,8 @@ void execute_job(job* job,char *const envp[]) {
 #if DEBUG
       printf("Error: status = %d\n", result);
 #endif
+      perror("ish");
+      fprintf(stderr, "  in attempt to execute \"%s\"\n", plist->program_name);
       exit(result);
     }
     if (pre_fd != -2) {
