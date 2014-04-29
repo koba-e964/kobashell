@@ -3,6 +3,7 @@
 #include <fcntl.h>
 
 #include <assert.h>
+#include <errno.h>
 #include <string.h>
 #include <unistd.h>
 #include "parser/parse.h"
@@ -10,8 +11,16 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
+#if DEBUG
+int CLOSE(int fd) {
+  printf("closing %d\n", fd);
+  return close(fd);
+}
+#else
+#define CLOSE close
+#endif
 
 void print_job_list(job*);
 
@@ -47,6 +56,9 @@ void execute_job(job* job,char *const envp[]) {
   for (; plist; plist = plist->next) {
     if (plist->next) {
       int result = pipe(pipefd);
+#if DEBUG
+      printf("pipefd: (%d, %d)\n", pipefd[0], pipefd[1]);
+#endif
       if (result == -1) {
         perror("execute_job.for.if.pipe");
         return;
@@ -86,10 +98,10 @@ void execute_job(job* job,char *const envp[]) {
       exit(result);
     }
     if (pre_fd != -2) {
-      close(pre_fd);
+      CLOSE(pre_fd);
     }
     if (plist->next) {
-      close(pipefd[1]);
+      CLOSE(pipefd[1]);
       pre_fd = pipefd[0]; //the read-end of the pipe
     }
     pid_cur->val = pid;
@@ -101,13 +113,23 @@ void execute_job(job* job,char *const envp[]) {
   switch (job->mode) {
   case FOREGROUND:
     pid_cur = pids;
+      /* TODO FIXME this doesn't work if you create background processes, since it attempt to wait for them. */
+    while ((pid = waitpid(-1, &status, 0)) != 0) {
+#if DEBUG
+      printf("[%d] finished (status = %d)\n", pid, status);
+#endif
+      if(errno == ECHILD) {
+	break;
+      }
+    }
+    /*
     while (pid_cur->next) {
       waitpid(pid_cur->val, &status, 0);
 #if DEBUG
       printf("[%d] finished (status = %d)\n", pid_cur->val, status);
 #endif
       pid_cur = pid_cur->next;
-    }
+    }*/
     int_list_free(pids);
     break;
   case BACKGROUND:
