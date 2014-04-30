@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 int CLOSE(int fd) {
@@ -114,7 +114,8 @@ void execute_job(job* job,char *const envp[]) {
   case FOREGROUND:
     pid_cur = pids;
       /* TODO FIXME this doesn't work if you create background processes, since it attempt to wait for them. */
-    while ((pid = waitpid(-1, &status, 0)) != 0) {
+    while (1) {
+      pid = waitpid(-1, &status, 0);
 #if DEBUG
       printf("[%d] finished (status = %d)\n", pid, status);
 #endif
@@ -149,6 +150,17 @@ void execute_job(job* job,char *const envp[]) {
     break;
   default:
     assert(!"not reachable");
+  }
+  while (1) {
+    pid = waitpid(-1, &status, WNOHANG);
+#if DEBUG
+    if (pid != 0) {
+      printf("nohang finish: pid = %d, status = %d\n", pid, status);
+    }
+#endif
+    if(pid == -1 && errno == ECHILD) {
+      break;
+    }
   }
 }
 
