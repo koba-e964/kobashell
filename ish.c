@@ -11,7 +11,8 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-#define DEBUG 0
+#include "./config.h"
+
 
 #if DEBUG
 int CLOSE(int fd) {
