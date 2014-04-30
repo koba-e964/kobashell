@@ -11,6 +11,10 @@
 #include <stdlib.h>
 #include <malloc.h>
 
+#if USE_READLINE
+#include <readline/readline.h>
+#endif
+
 #include "./config.h"
 
 
@@ -168,6 +172,7 @@ void execute_job(job* job,char *const envp[]) {
 
 int main(int argc, char *const argv[], char *const envp[]) {
   char s[LINELEN];
+  char *line;
   job *curr_job;
 #if DEBUG
   {
@@ -179,16 +184,23 @@ int main(int argc, char *const argv[], char *const envp[]) {
   }
 #endif
 
+#if USE_READLINE
+  while (line = readline("ish$ ")) {
+#else
   while(get_line(s, LINELEN)) {
-
-    if(!strcmp(s, "exit\n"))
+    line = s;
+#endif
+    if(!strcmp(line, "exit\n"))
       break;
-    curr_job = parse_line(s);
+    curr_job = parse_line(line);
     while (curr_job != NULL) {
       execute_job(curr_job, envp);
       curr_job = curr_job->next;
     }
     free_job(curr_job);
+#if USE_READLINE
+    free(line);
+#endif
   }
 
   return 0;
