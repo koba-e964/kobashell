@@ -1,20 +1,22 @@
 CC = gcc
 CFLAGS = -O2 -Wall
 
-EXECS = ish
+EXEC = ish
 
-ISH_DEP =ish.c parser/parse.c parser/print.c
-ISH_OBJS=$(ISH_DEP:.c=.o)
+ISH_SRC =ish.c parser/parse.c parser/print.c
+ISH_OBJS=$(ISH_SRC:.c=.o)
 
-.PHONY : all
-all : $(EXECS)
+.PHONY : all run clean
+all : $(EXEC)
+
+run : $(EXEC)
+	./$(EXEC)
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-ish : $(ISH_OBJS)
+$(EXEC) : $(ISH_OBJS)
 	$(CC) $(CFLAGS) -o $@ $(ISH_OBJS)
 
-.PHONY : clean
 clean :
-	rm -f $(ISH_OBJS) $(EXECS)
+	rm -f $(ISH_OBJS) $(EXEC)
