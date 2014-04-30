@@ -5,4 +5,5 @@ ish
 Makefile
 CMakeCache.txt
 *.make
+*.cmake
 CMakeFiles/
