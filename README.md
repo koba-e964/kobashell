@@ -1,16 +1,16 @@
 # Kobashell
 ## Overview
 Kobashell is a shell that will be submitted as an assignment of IS (Department of Information Science, School of Science).
-It uses a parser that was provided by IS (in the directory `/parser/`).
+It uses a parser that was provided by IS (in the directory `parser/`).
 
 ## Functions
 Functions and their status.
 
 | item | status |
 | --- | --- |
-|redirection| probably ok|
-|pipe | imcomplete |
-| searching $PATH for executable | no|
+|redirection| yes |
+|pipe | yes |
+| searching $PATH for executable | no |
 | expanding wildcard | no | 
 | reading from file | no |
 | rewriting parser | no |
@@ -18,15 +18,15 @@ Functions and their status.
 
 ## How to use it
 ```
+cd build/
+cmake ..
 make
 ```
-or
-```
-make all
-```
-creates an executable file `ish`. `ish` does not use `readline` library, so we recommend using `rlwrap`. 
+creates an executable file `build/bin/ish`. 
 
 ## Requirement
 * gcc
-* rlwrap (for convenience)
+* cmake
+* readline (optional)
+
 
