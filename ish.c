@@ -25,6 +25,12 @@ int CLOSE(int fd) {
 char *path = NULL;
 int_list *tok_path = NULL;
 
+/*
+  Initalizes internal data for search_path.
+  We should release
+   * path (free)
+  after use.
+*/
 void init_path(char *const envp[]) {
   //search for path
   {
@@ -69,14 +75,44 @@ void init_path(char *const envp[]) {
 #endif
 }
 
-char *search_path(char *filename) {
+/*
+  If filename contains no '/'s, it searches $PATH for an executable whose name is filename.
+  Otherwise, it will search for current directory only.
+  If there are no such files, this will return NULL.
+  The returned string has to be released by free unless it is NULL.
+*/
+char *search_path(char const *filename) {
+  int_list *cur;
+  int flen = strlen(filename);
+  if (strstr(filename, "/")) { /* filename contains a '/'. */
+    int result = access(filename, F_OK);
+    return result == -1 ? NULL : strdup(filename);
+  }
+  for(cur = tok_path; cur->next != NULL; cur = cur->next) {
+    int slen = strlen(path + cur->val);
+    char *buf = malloc(slen + flen + 2);
+    /* creates (an element of PATH) + "/" + filename */
+    strncpy(buf, path + cur->val, slen);
+    buf[slen] = '/';
+    strncpy(buf + slen + 1,filename, flen);
+    buf[slen + 1 + flen] = '\0';
+#if DEBUG
+    printf("Checking %s...\n", buf);
+#endif
+    int result = access(buf, F_OK);
+    if (result == -1) { /* the file doesn't exist */
+      errno = 0;
+    } else { /* found! */
+      return buf;
+    }
+    free(buf);
+  }
   return NULL;
 }
 
 
 /*
   Executes a job.
-  cleanup: NO file descriptors are closed.
 */
 void execute_job(job* job,char *const envp[]) {
   pid_t pid;
@@ -104,6 +140,7 @@ void execute_job(job* job,char *const envp[]) {
     pid = fork();
     if (pid == 0) {
       int result;
+      char *exec_name; /* the name of the executable */
       if (pre_fd != -2) {
         dup2(pre_fd, 0);
       }
@@ -126,7 +163,12 @@ void execute_job(job* job,char *const envp[]) {
         }
         dup2(fd, 1); // stdout was redirected.
       }
-      result = execve(plist->program_name, plist->argument_list, envp);
+      exec_name = search_path(plist->program_name);
+      if (exec_name == NULL) {
+	printf("ish: not found: %s\n", plist->program_name);
+	exit(EXIT_FAILURE);
+      }
+      result = execve(exec_name, plist->argument_list, envp);
 #if DEBUG
       printf("Error: status = %d\n", result);
 #endif
