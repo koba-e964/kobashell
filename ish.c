@@ -15,7 +15,7 @@
 #include <readline/readline.h>
 #endif
 
-#include "./config.h"
+#include "./kobash.h"
 
 
 #if DEBUG
@@ -166,8 +166,6 @@ void kill_defuncts(void) {
 }
 
 int main(int argc, char *const argv[], char *const envp[]) {
-  char s[LINELEN];
-  char *line;
   job *curr_job;
 #if DEBUG
   {
@@ -179,13 +177,9 @@ int main(int argc, char *const argv[], char *const envp[]) {
   }
 #endif
   while (1) {
+    char *line;
     kill_defuncts();
-#if USE_READLINE
-    line = readline("ish$ ");
-#else
-    get_line(s, LINELEN);
-    line = s;
-#endif
+    line = k_getline("ish$ ");
     if(!strcmp(line, "exit"))
       break;
     curr_job = parse_line(line);
@@ -194,11 +188,7 @@ int main(int argc, char *const argv[], char *const envp[]) {
       curr_job = curr_job->next;
     }
     free_job(curr_job);
-#if USE_READLINE
     free(line);
-#endif
   }
-
   return 0;
 }
-
