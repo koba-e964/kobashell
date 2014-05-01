@@ -165,8 +165,9 @@ job* parse_line(char *buf) {
             index = 0;
             arg_index = 0;
             if(curr_job) {
-                strcpy(curr_prc->program_name,
-                       curr_prc->argument_list[0]);
+                strncpy(curr_prc->program_name,
+                        curr_prc->argument_list[0], NAMELEN);
+                curr_prc->program_name[NAMELEN-1] = '\0';
                 curr_prc->next = initialize_process();
                 curr_prc = curr_prc->next;
             }
@@ -193,23 +194,32 @@ job* parse_line(char *buf) {
             if(!curr_prc->argument_list[arg_index])
                 initialize_argument_list_element(curr_prc, arg_index);
 
-            curr_prc->argument_list[arg_index][index++] = *buf++;
+            if (arg_index < ARGLSTLEN && index < NAMELEN) {
+              curr_prc->argument_list[arg_index][index++] = *buf;
+            }
+            buf++;
         } else if(state == IN_REDIRCT) {
             if(!curr_prc->input_redirection)
                 initialize_input_redirection(curr_prc);
 
-            curr_prc->input_redirection[index++] = *buf++;
+            if (arg_index < ARGLSTLEN && index < NAMELEN) {
+              curr_prc->input_redirection[index++] = *buf;
+            }
+            buf++;
         } else if(state == OUT_REDIRCT_TRUNC || state == OUT_REDIRCT_APPEND) {
             if(!curr_prc->output_redirection)
                 initialize_output_redirection(curr_prc);
-
-            curr_prc->output_redirection[index++] = *buf++;
+            if (arg_index < ARGLSTLEN && index < NAMELEN) {
+              curr_prc->output_redirection[index++] = *buf;
+            }
+            buf++;
         }
     }
 
     /* 最後に、引数の0番要素をprogram_nameにコピーする */
-    if(curr_prc)
-        strcpy(curr_prc->program_name, curr_prc->argument_list[0]);
-
+    if(curr_prc){
+      strncpy(curr_prc->program_name, curr_prc->argument_list[0], NAMELEN);
+      curr_prc->program_name[NAMELEN - 1] = '\0';
+    }
     return curr_job;
 }

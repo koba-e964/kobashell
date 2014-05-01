@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(ish)
 
 list(APPEND LIBS)
-list(APPEND CFLAGS -O2 -Wall)
+set(CMAKE_C_FLAGS "-O2 -Wall -fstack-protector")
 
 find_path(READLINE_ROOT
   NAMES include/readline/readline.h)
@@ -19,7 +19,7 @@ else()
   set(USE_READLINE 0)
 endif()
 
-execute_process(COMMAND echo "USE_READLINE="${USE_READLINE})
+execute_process(COMMAND echo "USE_READLINE ="${USE_READLINE})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY bin)
 
