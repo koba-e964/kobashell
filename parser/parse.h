@@ -41,7 +41,6 @@ typedef enum parse_state_ {
     OUT_REDIRCT_APPEND,
 } parse_state;
 
-char* get_line(char *, int);
 job* parse_line(char *);
 void free_job(job *);
 

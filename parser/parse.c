@@ -8,28 +8,6 @@
 #include <errno.h>
 #include "parse.h"
 
-/* 標準入力から最大size-1個の文字を改行またはEOFまで読み込み、sに設定する */
-char* get_line(char *s, int size) {
-  int i;
-  printf(PROMPT);
-
-  while(fgets(s, size, stdin) == NULL) {
-    if(errno == EINTR)
-      continue;
-    return NULL;
-  }
-  for (i = 0; i < size; ++i) {
-    if (s[i] == '\n') { // remove the last '\n'
-      s[i] = '\0';
-      break;
-    }
-  }
-  if (i == size) {
-    s[size - 1] = '\0'; // Ensures that s is NUL-terminated.
-  }
-  return s;
-}
-
 static char* initialize_program_name(process *p) {
 
     if(!(p->program_name = (char*)malloc(sizeof(char)*NAMELEN)))
