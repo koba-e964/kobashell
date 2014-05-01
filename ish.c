@@ -11,12 +11,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-#if USE_READLINE
-#include <readline/readline.h>
-#endif
-
 #include "./kobash.h"
-
 
 #if DEBUG
 int CLOSE(int fd) {
@@ -26,21 +21,6 @@ int CLOSE(int fd) {
 #else
 #define CLOSE close
 #endif
-
-void print_job_list(job*);
-
-typedef struct int_list_ {
-  int val;                // if p->next == 0, val has no meanings.
-  struct int_list_ *next; // if p->next == 0, p stands for [].
-} int_list;
-
-void int_list_free(int_list *ptr) {
-  int_list *next = ptr->next;
-  free(ptr);
-  if(next != NULL) {
-    int_list_free(next);
-  }
-}
 
 /*
   Executes a job.

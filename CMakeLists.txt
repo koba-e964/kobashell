@@ -29,5 +29,5 @@ if(USE_READLINE)
   list(APPEND LIBS ${READLINE_LIB} ncurses)
 endif()
 
-add_executable(ish ish.c parser/parse.c getline.c)
+add_executable(ish ish.c parser/parse.c getline.c int_list.c)
 target_link_libraries(ish ${LIBS})
