@@ -5,6 +5,7 @@
 
 #if USE_READLINE
 #include <readline/readline.h>
+#include <readline/history.h>
 #endif
 
 char *k_getline(char *prompt) {
