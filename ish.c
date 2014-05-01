@@ -22,6 +22,58 @@ int CLOSE(int fd) {
 #define CLOSE close
 #endif
 
+char *path = NULL;
+int_list *tok_path = NULL;
+
+void init_path(char *const envp[]) {
+  //search for path
+  {
+    char * const *cur_env = envp;
+    for(; !path && *cur_env; ++cur_env) {
+      if (strncmp(*cur_env, "PATH=", 5) == 0) {
+        path = strdup((*cur_env) + 5); /* "PATH=" */
+      }
+    }
+#if DEBUG
+    printf("$PATH = %s\n", path);
+#endif
+  }
+  int_list* pts = (int_list *) malloc(sizeof(int_list));
+  pts->val = 0;
+  pts->next = NULL;
+  int_list* cur = pts;
+  int pos = 0;
+  int last = 0;
+  for (; 1; ++pos) {
+    char pp = path[pos];
+    if (pp == ':' || pp == '\0') {
+      if (last < pos) {
+        cur->val = last;
+        cur->next = (int_list *) malloc(sizeof(int_list));
+        cur = cur->next;
+      }
+      path[pos] = '\0';
+      last = pos + 1;
+    }
+    if (pp == '\0') {
+      break;
+    }
+  }
+  tok_path = pts;
+#if DEBUG
+  printf("tokenized path:[");
+  for (cur = tok_path; cur->next != NULL; cur = cur->next) {
+    printf("%s\n", path + cur->val);
+  }
+  printf("]\n");
+#endif
+}
+
+char *search_path(char *filename) {
+  return NULL;
+}
+
+
 /*
   Executes a job.
   cleanup: NO file descriptors are closed.
@@ -156,6 +208,7 @@ int main(int argc, char *const argv[], char *const envp[]) {
     }
   }
 #endif
+  init_path(envp); /* initializes path, tok_path */
   while (1) {
     char *line;
     kill_defuncts();
