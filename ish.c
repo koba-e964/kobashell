@@ -118,24 +118,13 @@ void execute_job(job* job,char *const envp[]) {
   switch (job->mode) {
   case FOREGROUND:
     pid_cur = pids;
-      /* TODO FIXME this doesn't work if you create background processes, since it attempt to wait for them. */
-    while (1) {
-      pid = waitpid(-1, &status, 0);
-#if DEBUG
-      printf("[%d] finished (status = %d)\n", pid, status);
-#endif
-      if(errno == ECHILD) {
-	break;
-      }
-    }
-    /*
     while (pid_cur->next) {
       waitpid(pid_cur->val, &status, 0);
 #if DEBUG
       printf("[%d] finished (status = %d)\n", pid_cur->val, status);
 #endif
       pid_cur = pid_cur->next;
-    }*/
+    }
     int_list_free(pids);
     break;
   case BACKGROUND:
@@ -149,13 +138,17 @@ void execute_job(job* job,char *const envp[]) {
         printf(", ");
       }
     }
-    printf("]\n (created)");
+    printf("] (created)\n");
 #endif
     int_list_free(pids);
     break;
   default:
     assert(!"not reachable");
   }
+}
+void kill_defuncts(void) {
+  pid_t pid;
+  int status;
   while (1) {
     pid = waitpid(-1, &status, WNOHANG);
 #if DEBUG
@@ -163,12 +156,14 @@ void execute_job(job* job,char *const envp[]) {
       printf("nohang finish: pid = %d, status = %d\n", pid, status);
     }
 #endif
-    if(pid == -1 && errno == ECHILD) {
+    if (pid == 0) {
+      break;
+    }
+    if (pid == -1 && errno == ECHILD) {
       break;
     }
   }
 }
-
 
 int main(int argc, char *const argv[], char *const envp[]) {
   char s[LINELEN];
@@ -183,11 +178,12 @@ int main(int argc, char *const argv[], char *const envp[]) {
     }
   }
 #endif
-
+  while (1) {
+    kill_defuncts();
 #if USE_READLINE
-  while (line = readline("ish$ ")) {
+    line = readline("ish$ ");
 #else
-  while(get_line(s, LINELEN)) {
+    get_line(s, LINELEN);
     line = s;
 #endif
     if(!strcmp(line, "exit"))
