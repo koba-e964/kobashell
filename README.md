@@ -29,4 +29,5 @@ creates an executable file `build/bin/ish`.
 * cmake
 * readline (optional)
 
-
+## TODO
+If some processes connected with a pipe is run simultaneously, and when one of them was terminated, the other processes continue execution. It is not a correct behavior.
