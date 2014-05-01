@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.6)
 project(ish)
 
+list(APPEND LIBS)
+list(APPEND CFLAGS -O2 -Wall)
+
 find_path(READLINE_ROOT
   NAMES include/readline/readline.h)
 find_path(READLINE_INCLUDE
@@ -20,6 +23,11 @@ execute_process(COMMAND echo "USE_READLINE="${USE_READLINE})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY bin)
 
-
+if(USE_READLINE)
+  include_directories(${READLINE_INCLUDE})
+  add_definitions(-DUSE_READLINE=1)
+  list(APPEND LIBS ${READLINE_LIB} ncurses)
+endif()
 
 add_executable(ish ish.c parser/parse.c parser/print.c)
+target_link_libraries(ish ${LIBS})

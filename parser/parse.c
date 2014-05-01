@@ -10,16 +10,24 @@
 
 /* 標準入力から最大size-1個の文字を改行またはEOFまで読み込み、sに設定する */
 char* get_line(char *s, int size) {
+  int i;
+  printf(PROMPT);
 
-    printf(PROMPT);
-
-    while(fgets(s, size, stdin) == NULL) {
-        if(errno == EINTR)
-            continue;
-        return NULL;
+  while(fgets(s, size, stdin) == NULL) {
+    if(errno == EINTR)
+      continue;
+    return NULL;
+  }
+  for (i = 0; i < size; ++i) {
+    if (s[i] == '\n') { // remove the last '\n'
+      s[i] = '\0';
+      break;
     }
-
-    return s;
+  }
+  if (i == size) {
+    s[size - 1] = '\0'; // Ensures that s is NUL-terminated.
+  }
+  return s;
 }
 
 static char* initialize_program_name(process *p) {
@@ -146,8 +154,8 @@ job* parse_line(char *buf) {
     parse_state state = ARGUMENT;
     int index=0, arg_index=0;
 
-    /* 改行文字まで解析する */
-    while(*buf != '\n') {
+    /* analyses till NUL or line */
+    while(*buf != '\0' && *buf != '\n') {
         /* 空白およびタブを読んだときの処理 */
         if(*buf == ' ' || *buf == '\t') {
             buf++;

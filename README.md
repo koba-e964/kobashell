@@ -14,7 +14,7 @@ Functions and their status.
 | expanding wildcard | no | 
 | reading from file | no |
 | rewriting parser | no |
-|using readline | no|
+|using readline | yes |
 
 ## How to use it
 ```

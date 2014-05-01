@@ -190,7 +190,7 @@ int main(int argc, char *const argv[], char *const envp[]) {
   while(get_line(s, LINELEN)) {
     line = s;
 #endif
-    if(!strcmp(line, "exit\n"))
+    if(!strcmp(line, "exit"))
       break;
     curr_job = parse_line(line);
     while (curr_job != NULL) {
