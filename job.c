@@ -113,9 +113,8 @@ void execute_job(job* job,char *const envp[]) {
     int_list_free(pids);
     break;
   case BACKGROUND:
-#if DEBUG
     pid_cur = pids;
-    printf("[pid = ");
+    printf("[created] (pid = ");
     while (pid_cur->next) {
       printf("%d", pid_cur->val);
       pid_cur = pid_cur->next;
@@ -123,8 +122,7 @@ void execute_job(job* job,char *const envp[]) {
         printf(", ");
       }
     }
-    printf("] (created)\n");
-#endif
+    printf(")\n");
     int_list_free(pids);
     break;
   default:
@@ -137,16 +135,12 @@ void kill_defuncts(void) {
   int status;
   while (1) {
     pid = waitpid(-1, &status, WNOHANG);
-#if DEBUG
-    if (pid != 0) {
-      printf("nohang finish: pid = %d, status = %d\n", pid, status);
-    }
-#endif
-    if (pid == 0) {
+    if (pid == -1 && errno == ECHILD) { /* There are no child processes. */
       break;
     }
-    if (pid == -1 && errno == ECHILD) {
+    if (pid == 0) { /* No child processes are terminated. */
       break;
     }
+    printf("[terminated] pid = %d, status = %d\n", pid, status);
   }
 }
