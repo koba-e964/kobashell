@@ -10,7 +10,7 @@ Functions and their status.
 | --- | --- |
 |redirection| yes |
 |pipe | yes |
-| searching $PATH for executable | no |
+| searching $PATH for executable | yes |
 | expanding wildcard | no | 
 | reading from file | no |
 | rewriting parser | no |
