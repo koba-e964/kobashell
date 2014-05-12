@@ -134,6 +134,7 @@ void execute_job(job* job,char *const envp[]) {
       int result = waitpid(pid_cur->val, &status, 0);
       if (result < 0) {
         perror("FOREGROUND.waitpid");
+	pid = pid_cur->val;
         fprintf(stderr, "pid = %d\n", pid);
         pid_cur = pid_cur->next;
         continue;
@@ -144,7 +145,6 @@ void execute_job(job* job,char *const envp[]) {
       pid_cur = pid_cur->next;
     }
     int_list_free(pids);
-    tcsetpgrp(0, getpid()); // set shell to be foreground
     break;
   case BACKGROUND:
     pid_cur = pids;
@@ -162,6 +162,7 @@ void execute_job(job* job,char *const envp[]) {
   default:
     assert(!"not reachable");
   }
+  tcsetpgrp(0, getpid()); // set shell to be foreground
 }
 
 void kill_defuncts(void) {
@@ -169,8 +170,12 @@ void kill_defuncts(void) {
   int status;
   while (1) {
     pid = waitpid(-1, &status, WNOHANG);
-    if (pid == -1 && errno == ECHILD) { /* There are no child processes. */
-      break;
+    if (pid == -1) {
+      if (errno == ECHILD) { /* There are no child processes. */
+	break;
+      }
+      perror("kill_defuncts");
+      continue;
     }
     if (pid == 0) { /* No child processes are terminated. */
       break;
