@@ -8,25 +8,28 @@ Functions and their status.
 
 | item | status |
 | --- | --- |
-|redirection| yes |
-|pipe | yes |
+| redirection| yes |
+| pipe | yes |
 | searching $PATH for executable | yes |
 | expanding wildcard | no | 
 | reading from file | no |
 | rewriting parser | no |
-|using readline | yes |
+| background/foreground | no |
+| using readline | yes |
 
 ## How to use it
+If **cmake** is installed on your machine,
 ```
 cd build/
 cmake ..
 make
 ```
-creates an executable file `build/bin/ish`. 
+creates an executable file `bin/ish`. 
+Otherwise, `make` creates an executable file `bin/ish` (the same position).
 
 ## Requirement
 * gcc
-* cmake
+* cmake (optional)
 * readline (optional)
 
 ## TODO

@@ -2,8 +2,9 @@
 ish
 *~
 *#*
-Makefile
-CMakeCache.txt
-*.make
-*.cmake
+build/Makefile
+build/CMakeCache.txt
+build/*.make
+build/*.cmake
 CMakeFiles/
+
