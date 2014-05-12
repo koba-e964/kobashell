@@ -22,11 +22,65 @@ int CLOSE(int fd) {
 #endif
 
 
+void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id) {
+  int result;
+  char *exec_name; /* the name of the executable */
+  if (pre_fd != -2) {
+    dup2(pre_fd, 0);
+  }
+  if (plist->input_redirection) { // stdin is redirected.
+    int fd = open(plist->input_redirection, O_RDONLY);
+    if (fd == -1) {
+      fprintf(stderr, "error in opening %s (input)\n", plist->input_redirection);
+      exit(1);
+    }
+    dup2(fd, 0); // stdin was redirected.
+  }
+  if (plist->next) {
+    dup2(pipefd[1], 1);
+  }
+  if (plist->output_redirection) { //stdout is redirected.
+    int fd = open(plist->output_redirection, O_WRONLY | O_CREAT | (plist->output_option == APPEND ? O_APPEND : 0), 0777);
+    if (fd == -1) {
+      fprintf(stderr, "error in opening %s (output)\n", plist->output_redirection);
+      exit(1);
+    }
+    dup2(fd, 1); // stdout was redirected.
+  }
+  if (group_id == -2) { // This process is the first process.
+    group_id = getpid();
+  }
+#if DEBUG
+  fprintf(stderr, "group_id : %d\n", group_id);
+#endif
+  if (setpgid(0, group_id) < 0) {
+    perror("child.setpgid");
+  }
+  exec_name = search_path(plist->program_name);
+  if (exec_name == NULL) {
+    printf("ish: not found: %s\n", plist->program_name);
+    exit(EXIT_FAILURE);
+  }
+  int ttyfd = 1;
+  if (tcsetpgrp(ttyfd, group_id) < 0) {
+    perror("child.tcsetpgrp");
+  }
+  result = execve(exec_name, plist->argument_list, envp);
+#if DEBUG
+  printf("Error: status = %d\n", result);
+#endif
+  perror("ish");
+  fprintf(stderr, "  in attempt to execute \"%s\"\n", plist->program_name);
+  exit(result);
+}
+
+
 /*
   Executes a job.
 */
 void execute_job(job* job,char *const envp[]) {
   pid_t pid;
+  pid_t group_id = -2; // the process group of children, -2 if not initialized
   int pipefd[2];
   int status;
   int pre_fd = -2; // fd of previous process' stdout. If -2, it is not assigned.
@@ -50,49 +104,22 @@ void execute_job(job* job,char *const envp[]) {
     }
     pid = fork();
     if (pid == 0) {
-      int result;
-      char *exec_name; /* the name of the executable */
-      if (pre_fd != -2) {
-        dup2(pre_fd, 0);
-      }
-      if (plist->input_redirection) { // stdin is redirected.
-        int fd = open(plist->input_redirection, O_RDONLY);
-        if (fd == -1) {
-          fprintf(stderr, "error in opening %s (input)\n", plist->input_redirection);
-          exit(1);
-        }
-        dup2(fd, 0); // stdin was redirected.
-      }
-      if (plist->next) {
-        dup2(pipefd[1], 1);
-      }
-      if (plist->output_redirection) { //stdout is redirected.
-        int fd = open(plist->output_redirection, O_WRONLY | O_CREAT | (plist->output_option == APPEND ? O_APPEND : 0), 0777);
-        if (fd == -1) {
-          fprintf(stderr, "error in opening %s (output)\n", plist->output_redirection);
-          exit(1);
-        }
-        dup2(fd, 1); // stdout was redirected.
-      }
-      exec_name = search_path(plist->program_name);
-      if (exec_name == NULL) {
-	printf("ish: not found: %s\n", plist->program_name);
-	exit(EXIT_FAILURE);
-      }
-      result = execve(exec_name, plist->argument_list, envp);
-#if DEBUG
-      printf("Error: status = %d\n", result);
-#endif
-      perror("ish");
-      fprintf(stderr, "  in attempt to execute \"%s\"\n", plist->program_name);
-      exit(result);
+      child(envp, pre_fd, pipefd, plist, group_id);
+      assert(!"unreachable");
     }
+// parent process
     if (pre_fd != -2) {
       CLOSE(pre_fd);
     }
     if (plist->next) {
       CLOSE(pipefd[1]);
       pre_fd = pipefd[0]; //the read-end of the pipe
+    }
+    if (group_id == -2) {
+#if DEBUG
+      fprintf(stderr, "group_id = %d\n", pid);
+#endif
+      group_id = pid; // The first process' pid is the group id.
     }
     pid_cur->val = pid;
     pid_cur->next = malloc(sizeof(int_list));
@@ -104,13 +131,20 @@ void execute_job(job* job,char *const envp[]) {
   case FOREGROUND:
     pid_cur = pids;
     while (pid_cur->next) {
-      waitpid(pid_cur->val, &status, 0);
+      int result = waitpid(pid_cur->val, &status, 0);
+      if (result < 0) {
+        perror("FOREGROUND.waitpid");
+        fprintf(stderr, "pid = %d\n", pid);
+        pid_cur = pid_cur->next;
+        continue;
+      }
 #if DEBUG
       printf("[%d] finished (status = %d)\n", pid_cur->val, status);
 #endif
       pid_cur = pid_cur->next;
     }
     int_list_free(pids);
+    tcsetpgrp(0, getpid()); // set shell to be foreground
     break;
   case BACKGROUND:
     pid_cur = pids;
