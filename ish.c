@@ -9,10 +9,13 @@
 #include <stdlib.h>
 
 void test_handler(int id) {
+#if DEBUG
   printf("test_handler : %d\n", id);
+#endif
 }
 
 void sigchld_action(int id, siginfo_t *info, void *param) {
+#if DEBUG
   printf("sigchld_action:");
 #define CASE(name) case name: printf("si_code = %s(%d)\n", #name, name); break;
   switch(info->si_code) {
@@ -31,7 +34,8 @@ void sigchld_action(int id, siginfo_t *info, void *param) {
     CASE(CLD_CONTINUED);
   default:
     printf("si_code = %d\n", info->si_code);
-  } 
+  }
+#endif // DEBUG
 }
 
 

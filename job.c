@@ -22,7 +22,7 @@ int CLOSE(int fd) {
 #endif
 
 
-void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id, job_mode mode) {
+void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id) {
   int result;
   char *exec_name; /* the name of the executable */
   if (pre_fd != -2) {
@@ -58,15 +58,6 @@ void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int gro
   if (exec_name == NULL) {
     printf("ish: not found: %s\n", plist->program_name);
     exit(EXIT_FAILURE);
-  }
-  int ttyfd = 0;
-  /* TODO remove this code
-   The shell changes foreground process group, so this code should be removed. */
-  if (mode == FOREGROUND && getpid() == group_id) { // the first process, foreground
-    if (tcsetpgrp(ttyfd, group_id) < 0) {
-      perror("child.tcsetpgrp");
-      fprintf(stderr, "[pid = %d ]\n", getpid());
-    }
   }
   result = execve(exec_name, plist->argument_list, envp);
   printf("Error: status = %d\n", result);
@@ -105,7 +96,7 @@ void execute_job(job* job,char *const envp[]) {
     }
     pid = fork();
     if (pid == 0) {
-      child(envp, pre_fd, pipefd, plist, group_id, job->mode);
+      child(envp, pre_fd, pipefd, plist, group_id);
       assert(!"unreachable");
     }
 // parent process
@@ -121,7 +112,7 @@ void execute_job(job* job,char *const envp[]) {
       fprintf(stderr, "group_id = %d\n", pid);
 #endif
       group_id = pid; // The first process' pid is the group id.
-      if (0 && job->mode == FOREGROUND) {
+      if (job->mode == FOREGROUND) {
         if (tcsetpgrp(0, group_id) < 0) {
           perror("shell.tcsetpgrp(child)");
         }
@@ -144,7 +135,9 @@ void execute_job(job* job,char *const envp[]) {
       if (result < 0) {
         if (errno == EINTR) {
           // continue waiting
+#if DEBUG
           printf("cw\n");
+#endif
           continue;
         }
         perror("FOREGROUND.waitpid");
