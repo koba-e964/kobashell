@@ -22,7 +22,7 @@ int CLOSE(int fd) {
 #endif
 
 
-void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id) {
+void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id, job_mode mode) {
   int result;
   char *exec_name; /* the name of the executable */
   if (pre_fd != -2) {
@@ -50,25 +50,26 @@ void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int gro
   if (group_id == -2) { // This process is the first process.
     group_id = getpid();
   }
-#if DEBUG
-  fprintf(stderr, "group_id : %d\n", group_id);
-#endif
   if (setpgid(0, group_id) < 0) {
     perror("child.setpgid");
+    fprintf(stderr, "[pid = %d ]\n", getpid());
   }
   exec_name = search_path(plist->program_name);
   if (exec_name == NULL) {
     printf("ish: not found: %s\n", plist->program_name);
     exit(EXIT_FAILURE);
   }
-  int ttyfd = 1;
-  if (tcsetpgrp(ttyfd, group_id) < 0) {
-    perror("child.tcsetpgrp");
+  int ttyfd = 0;
+  /* TODO remove this code
+   The shell changes foreground process group, so this code should be removed. */
+  if (0 && mode == FOREGROUND && getpid() == group_id) { // the first process, foreground
+    if (tcsetpgrp(ttyfd, group_id) < 0) {
+      perror("child.tcsetpgrp");
+      fprintf(stderr, "[pid = %d ]\n", getpid());
+    }
   }
   result = execve(exec_name, plist->argument_list, envp);
-#if DEBUG
   printf("Error: status = %d\n", result);
-#endif
   perror("ish");
   fprintf(stderr, "  in attempt to execute \"%s\"\n", plist->program_name);
   exit(result);
@@ -104,7 +105,7 @@ void execute_job(job* job,char *const envp[]) {
     }
     pid = fork();
     if (pid == 0) {
-      child(envp, pre_fd, pipefd, plist, group_id);
+      child(envp, pre_fd, pipefd, plist, group_id, job->mode);
       assert(!"unreachable");
     }
 // parent process
@@ -120,6 +121,11 @@ void execute_job(job* job,char *const envp[]) {
       fprintf(stderr, "group_id = %d\n", pid);
 #endif
       group_id = pid; // The first process' pid is the group id.
+      if (job->mode == FOREGROUND) {
+        if (tcsetpgrp(0, group_id) < 0) {
+          perror("shell.tcsetpgrp(child)");
+        }
+      }
     }
     pid_cur->val = pid;
     pid_cur->next = malloc(sizeof(int_list));
@@ -131,8 +137,16 @@ void execute_job(job* job,char *const envp[]) {
   case FOREGROUND:
     pid_cur = pids;
     while (pid_cur->next) {
+#if DEBUG
+      fprintf(stderr, "waiting %d...:\n ", pid_cur->val); 
+#endif
       int result = waitpid(pid_cur->val, &status, 0);
       if (result < 0) {
+        if (errno == EINTR) {
+          // continue waiting
+          printf("cw\n");
+          continue;
+        }
         perror("FOREGROUND.waitpid");
 	pid = pid_cur->val;
         fprintf(stderr, "pid = %d\n", pid);
@@ -145,6 +159,9 @@ void execute_job(job* job,char *const envp[]) {
       pid_cur = pid_cur->next;
     }
     int_list_free(pids);
+    if (tcsetpgrp(0, getpid()) < 0) { // set shell to be foreground
+      perror("execute_job.FOREGROUND.tcsetpgrp");
+    }
     break;
   case BACKGROUND:
     pid_cur = pids;
@@ -162,7 +179,6 @@ void execute_job(job* job,char *const envp[]) {
   default:
     assert(!"not reachable");
   }
-  tcsetpgrp(0, getpid()); // set shell to be foreground
 }
 
 void kill_defuncts(void) {

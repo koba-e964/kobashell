@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #if USE_READLINE
 #include <readline/readline.h>
@@ -17,7 +18,11 @@ char *k_getline(char *prompt) {
   int capacity = 32;
   int size = 0;
   char *ptr;
-  printf("%s", prompt);
+  int result = printf("%s", prompt);
+  if (result < 0) {
+    perror("k_getline.prompt");
+    return NULL;
+  }
   ptr = malloc(capacity);
   
   while (1) {
@@ -33,6 +38,13 @@ char *k_getline(char *prompt) {
       ptr = nptr;
     }
     int ch = getchar();
+    if (ch == EOF && errno == EINTR) {
+      continue; // go on reading even if it is interrupted
+    }
+    if (ch == EOF && size == 0) {
+      free(ptr);
+      return NULL;
+    }
     if (ch == EOF || ch == '\n') {
       ptr[size] = '\0';
       break;

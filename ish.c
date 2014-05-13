@@ -13,7 +13,7 @@ void test_handler(int id) {
 }
 
 void sigchld_action(int id, siginfo_t *info, void *param) {
-  printf("sigchld_action: id = %d\n", id);
+  printf("sigchld_action:");
 #define CASE(name) case name: printf("si_code = %s(%d)\n", #name, name); break;
   switch(info->si_code) {
     CASE(SI_USER);
@@ -57,8 +57,9 @@ int main(int argc, char *const argv[], char *const envp[]) {
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGQUIT, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
-    //sigaction(SIGTTIN, &sa, NULL);
+    /* Ignores SIGTTIN, SIGTTOU */
     sa.sa_handler = SIG_IGN;
+    sigaction(SIGTTIN, &sa, NULL);
     sigaction(SIGTTOU, &sa, NULL);
     sa.sa_handler = test_handler;
     sa.sa_flags = SA_SIGINFO;
@@ -80,6 +81,10 @@ int main(int argc, char *const argv[], char *const envp[]) {
     char *line;
     kill_defuncts();
     line = k_getline("ish$ ");
+    if (line == NULL) { // error on k_getline
+      perror("main.while(1)");
+      break;
+    }
     if(!strcmp(line, "exit"))
       break;
     curr_job = parse_line(line);
