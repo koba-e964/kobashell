@@ -21,6 +21,9 @@ int CLOSE(int fd) {
 #define CLOSE close
 #endif
 
+void signal_init(void);
+extern int wait_cont;
+
 
 void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id) {
   int result;
@@ -59,6 +62,7 @@ void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int gro
     printf("ish: not found: %s\n", plist->program_name);
     exit(EXIT_FAILURE);
   }
+  signal_init(); // set signals
   result = execve(exec_name, plist->argument_list, envp);
   printf("Error: status = %d\n", result);
   perror("ish");
@@ -78,6 +82,8 @@ void execute_job(job* job,char *const envp[]) {
   int pre_fd = -2; // fd of previous process' stdout. If -2, it is not assigned.
   process *plist = job->process_list;
   int_list *pids, *pid_cur;
+
+  wait_cont = 1; // continue waiting if FOREGROUND
   pids = malloc(sizeof(int_list));
   pids->val = -1;
   pids->next = NULL;
@@ -127,7 +133,7 @@ void execute_job(job* job,char *const envp[]) {
   switch (job->mode) {
   case FOREGROUND:
     pid_cur = pids;
-    while (pid_cur->next) {
+    while (pid_cur->next && wait_cont) {
 #if DEBUG
       fprintf(stderr, "waiting %d...:\n ", pid_cur->val); 
 #endif
