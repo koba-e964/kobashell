@@ -171,16 +171,16 @@ void execute_job(job* job,char *const envp[]) {
   switch (job->mode) {
   case FOREGROUND:
     pid_cur = pids;
-    while (pid_cur->next && wait_cont) {
+    while (pid_cur->next) {
 #if DEBUG
       fprintf(stderr, "waiting %d...:\n ", pid_cur->val); 
 #endif
-      int result = waitpid(pid_cur->val, &status, 0);
+      int result = waitpid(pid_cur->val, &status, WUNTRACED);
       if (result < 0) {
         if (errno == EINTR) {
           // continue waiting
 #if DEBUG
-          printf("cw\n");
+          printf("waitpid.cw\n");
 #endif
           continue;
         }
@@ -193,6 +193,11 @@ void execute_job(job* job,char *const envp[]) {
 #if DEBUG
       printf("[%d] finished (status = %d)\n", pid_cur->val, status);
 #endif
+      if (WIFSTOPPED(status)) {
+	printf("STOPPED: pid = %d, groupid= %d\n", pid_cur->val, group_id);
+	pgroups_add(group_id);
+	break;
+      }
       pid_cur = pid_cur->next;
     }
     int_list_free(pids);
@@ -216,8 +221,36 @@ void execute_job(job* job,char *const envp[]) {
   default:
     assert(!"not reachable");
   }
-  pgroups_add(group_id);
+  //pgroups_add(group_id);
   print_pgroups();
+}
+
+void bg_run() {
+  pid_t pgid;
+  if (pgroups->next == NULL) {
+    printf("There are no suspended jobs.");
+    return;
+  }
+  pgid = pgroups->val;
+  if(DEBUG) {
+    fprintf(stderr, "running pg %d...\n", pgid);
+  }
+  if (kill(-pgid, SIGCONT) < 0) {
+    perror("bg_run.kill");
+  }
+  /* TODO FIXME remove pgid from pgroups */
+  /*
+  while (1) {
+    int status;
+    int result = waitpid(-pgid, &status, 0);
+    if (result < 0) {
+      break;
+    }
+#if DEBUG
+    printf("bg_run: [%d] finished (status = %d)\n", result, status);
+#endif
+  }
+  */
 }
 
 void kill_defuncts(void) {

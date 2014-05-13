@@ -111,8 +111,13 @@ int main(int argc, char *const argv[], char *const envp[]) {
       perror("main.while(1)");
       break;
     }
-    if(!strcmp(line, "exit"))
+    if (!strcmp(line, "exit")) {
       break;
+    }
+    if (! strcmp(line, "bg")) {
+      bg_run();
+      continue;
+    }
     curr_job = parse_line(line);
     while (curr_job != NULL) {
       execute_job(curr_job, envp);

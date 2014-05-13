@@ -28,6 +28,11 @@ void job_init(void);
 void execute_job(job* job,char *const envp[]);
 
 /*
+  Resume a process group in background.
+*/
+void bg_run(void);
+
+/*
   Kills all <defunct> processes.
 */
 void kill_defuncts(void);
