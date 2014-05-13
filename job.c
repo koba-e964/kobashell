@@ -62,7 +62,7 @@ void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int gro
   int ttyfd = 0;
   /* TODO remove this code
    The shell changes foreground process group, so this code should be removed. */
-  if (0 && mode == FOREGROUND && getpid() == group_id) { // the first process, foreground
+  if (mode == FOREGROUND && getpid() == group_id) { // the first process, foreground
     if (tcsetpgrp(ttyfd, group_id) < 0) {
       perror("child.tcsetpgrp");
       fprintf(stderr, "[pid = %d ]\n", getpid());
@@ -121,7 +121,7 @@ void execute_job(job* job,char *const envp[]) {
       fprintf(stderr, "group_id = %d\n", pid);
 #endif
       group_id = pid; // The first process' pid is the group id.
-      if (job->mode == FOREGROUND) {
+      if (0 && job->mode == FOREGROUND) {
         if (tcsetpgrp(0, group_id) < 0) {
           perror("shell.tcsetpgrp(child)");
         }
