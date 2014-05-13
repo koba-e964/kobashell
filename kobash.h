@@ -13,9 +13,14 @@ typedef struct int_list_ {
   struct int_list_ *next; // if p->next == 0, p stands for [].
 } int_list;
 
+int_list *int_list_new(void);
 void int_list_free(int_list *ptr);
 
 /* job.c */
+
+
+/* Initializes job.c. */
+void job_init(void);
 
 /*
   Executes a job.

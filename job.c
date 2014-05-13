@@ -25,6 +25,44 @@ void signal_init(void);
 extern int wait_cont;
 
 
+/*
+  list of all living process groups
+*/
+int_list *pgroups;
+int cur_fg;
+
+void job_init(void) {
+  pgroups = int_list_new();
+  cur_fg = -1;
+}
+
+void pgroups_add(pid_t pgid) {
+  int_list *cur = pgroups;
+  while (cur->next) {
+    cur = cur->next;
+  }
+  cur->next = int_list_new();
+  cur->val = pgid;
+}
+
+void print_pgroups(void) {
+  int_list *cur = pgroups;
+  printf("pgroups: ");
+  while (cur->next) {
+    printf("%d", cur->val);
+    cur = cur->next;
+    if (cur->next) {
+      printf(", ");
+    }
+  }
+  puts("");
+}
+
+void pgroups_remove(pid_t pgid) {
+  assert(!"not implemented");
+}
+
+
 void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id) {
   int result;
   char *exec_name; /* the name of the executable */
@@ -178,6 +216,8 @@ void execute_job(job* job,char *const envp[]) {
   default:
     assert(!"not reachable");
   }
+  pgroups_add(group_id);
+  print_pgroups();
 }
 
 void kill_defuncts(void) {

@@ -92,6 +92,7 @@ int main(int argc, char *const argv[], char *const envp[]) {
   init_path(envp); /* initialization in path.c */
 
   signal_init();
+  job_init();
   {
     pid_t group_id;
     group_id = getpid();
