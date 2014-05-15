@@ -37,39 +37,17 @@ void job_init(void) {
 }
 
 void pgroups_add(pid_t pgid) {
-  int_list *cur = pgroups;
-  while (cur->next) {
-    cur = cur->next;
-  }
-  cur->next = int_list_new();
-  cur->val = pgid;
+  int_list_add(pgroups, pgid);
 }
 
 void print_pgroups(void) {
-  int_list *cur = pgroups;
   printf("pgroups: ");
-  while (cur->next) {
-    printf("%d", cur->val);
-    cur = cur->next;
-    if (cur->next) {
-      printf(", ");
-    }
-  }
+  int_list_print(pgroups);
   puts("");
 }
 
 int pgroups_remove(pid_t pgid) {
-  int_list *cur = pgroups;
-  while (cur->next) {
-    if (cur->val == pgid) {
-      // remove
-      int_list *next = cur->next;
-      cur->val = next->val;
-      cur->next = next->next;
-      return 1;
-    }
-  }
-  return 0;
+  return int_list_remove(pgroups, pgid);
 }
 
 void pg_wait(pid_t pgid);
@@ -222,6 +200,11 @@ void bg_run(void) {
     perror("bg_run.kill");
   }
 }
+
+/*
+ TODO FIXME This resumes SUSPENDED process groups.
+ This should make background process groups run in f
+*/
 void fg_run(void) {
   pid_t pgid;
   if (pgroups->next == NULL) {

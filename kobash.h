@@ -14,6 +14,9 @@ typedef struct int_list_ {
 } int_list;
 
 int_list *int_list_new(void);
+void int_list_add(int_list *ls, int value);
+void int_list_print(int_list *ls);
+int int_list_remove(int_list *ls, int value);
 void int_list_free(int_list *ptr);
 
 /* job.c */
