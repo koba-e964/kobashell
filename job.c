@@ -72,6 +72,8 @@ int pgroups_remove(pid_t pgid) {
   return 0;
 }
 
+void pg_wait(pid_t pgid);
+
 
 void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id) {
   int result;
@@ -101,10 +103,6 @@ void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int gro
   if (group_id == -2) { // This process is the first process.
     group_id = getpid();
   }
-  if (setpgid(0, group_id) < 0) {
-    perror("child.setpgid");
-    fprintf(stderr, "[pid = %d ]\n", getpid());
-  }
   exec_name = search_path(plist->program_name);
   if (exec_name == NULL) {
     printf("ish: not found: %s\n", plist->program_name);
@@ -126,7 +124,6 @@ void execute_job(job* job,char *const envp[]) {
   pid_t pid;
   pid_t group_id = -2; // the process group of children, -2 if not initialized
   int pipefd[2];
-  int status;
   int pre_fd = -2; // fd of previous process' stdout. If -2, it is not assigned.
   process *plist = job->process_list;
   int_list *pids, *pid_cur;
@@ -161,17 +158,23 @@ void execute_job(job* job,char *const envp[]) {
       CLOSE(pipefd[1]);
       pre_fd = pipefd[0]; //the read-end of the pipe
     }
-    if (group_id == -2) {
+    int first = group_id == -2;
+    if (first) {
 #if DEBUG
       fprintf(stderr, "group_id = %d\n", pid);
 #endif
       group_id = pid; // The first process' pid is the group id.
-      if (job->mode == FOREGROUND) {
-        if (tcsetpgrp(0, group_id) < 0) {
-          perror("shell.tcsetpgrp(child)");
-        }
+    }
+    if (setpgid(pid, group_id) < 0) {
+      perror("child.setpgid");
+      fprintf(stderr, "[pid = %d ]\n", getpid());
+    }
+    if (first && job->mode == FOREGROUND) {
+      if (tcsetpgrp(0, group_id) < 0) {
+        perror("shell.tcsetpgrp(child)");
       }
     }
+
     pid_cur->val = pid;
     pid_cur->next = malloc(sizeof(int_list));
     pid_cur = pid_cur->next;
@@ -180,40 +183,8 @@ void execute_job(job* job,char *const envp[]) {
   }
   switch (job->mode) {
   case FOREGROUND:
-    pid_cur = pids;
-    while (pid_cur->next) {
-#if DEBUG
-      fprintf(stderr, "waiting %d...:\n ", pid_cur->val); 
-#endif
-      int result = waitpid(pid_cur->val, &status, WUNTRACED);
-      if (result < 0) {
-        if (errno == EINTR) {
-          // continue waiting
-#if DEBUG
-          printf("waitpid.cw\n");
-#endif
-          continue;
-        }
-        perror("FOREGROUND.waitpid");
-	pid = pid_cur->val;
-        fprintf(stderr, "pid = %d\n", pid);
-        pid_cur = pid_cur->next;
-        continue;
-      }
-#if DEBUG
-      printf("[%d] finished (status = %d)\n", pid_cur->val, status);
-#endif
-      if (WIFSTOPPED(status)) {
-	printf("STOPPED: pid = %d, groupid= %d\n", pid_cur->val, group_id);
-	pgroups_add(group_id);
-	break;
-      }
-      pid_cur = pid_cur->next;
-    }
+    pg_wait(group_id);
     int_list_free(pids);
-    if (tcsetpgrp(0, getpid()) < 0) { // set shell to be foreground
-      perror("execute_job.FOREGROUND.tcsetpgrp");
-    }
     break;
   case BACKGROUND:
     pid_cur = pids;
@@ -263,9 +234,19 @@ void fg_run(void) {
     fprintf(stderr, "running pg %d...\n", pgid);
 #endif
   if (kill(-pgid, SIGCONT) < 0) {
-    perror("bg_run.kill");
+    perror("fg_run.kill");
   }
-  tcsetpgrp(0, pgid);
+  pg_wait(pgid);
+}
+
+/*
+  Waits for process group of id pgid.
+  This is blocking.
+*/
+void pg_wait(pid_t pgid) {
+  if (tcsetpgrp(0, pgid) < 0) {
+    perror("pg_wait.tcsetpgrp(child)");
+  }
   while (1) {
     int status;
     int result = waitpid(-pgid, &status, WUNTRACED);
@@ -273,15 +254,18 @@ void fg_run(void) {
       if (errno == EINTR) {
         // continue waiting
 #if DEBUG
-        printf("waitpid.cw\n");
+        printf("pg_wait.cw\n");
 #endif
         continue;
       }
-      perror("fg_run.waitpid");
+      if (errno == ECHILD) { // no unwaited-for children
+        break;
+      }
+      perror("pg_wait.waitpid");
       fprintf(stderr, "(pgid = %d)\n", pgid);
       break;
     }
-    printf("fg_run: pid = %d\n", result);
+    printf("pg_wait: pid = %d\n", result);
     if (WIFSTOPPED(status)) {
       printf("STOPPED: pid = %d, groupid= %d\n", result, pgid);
       pgroups_add(pgid);
@@ -289,9 +273,10 @@ void fg_run(void) {
     }
   }
   if (tcsetpgrp(0, getpid()) < 0) { // set shell to be foreground
-    perror("execute_job.FOREGROUND.tcsetpgrp");
+    perror("pg_wait.tcsetpgrp(shell)");
   }
 }
+
 
 void kill_defuncts(void) {
   pid_t pid;
