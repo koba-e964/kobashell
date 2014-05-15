@@ -58,8 +58,18 @@ void print_pgroups(void) {
   puts("");
 }
 
-void pgroups_remove(pid_t pgid) {
-  assert(!"not implemented");
+int pgroups_remove(pid_t pgid) {
+  int_list *cur = pgroups;
+  while (cur->next) {
+    if (cur->val == pgid) {
+      // remove
+      int_list *next = cur->next;
+      cur->val = next->val;
+      cur->next = next->next;
+      return 1;
+    }
+  }
+  return 0;
 }
 
 
@@ -221,36 +231,25 @@ void execute_job(job* job,char *const envp[]) {
   default:
     assert(!"not reachable");
   }
-  //pgroups_add(group_id);
+#if DEBUG
   print_pgroups();
+#endif
 }
 
 void bg_run() {
   pid_t pgid;
   if (pgroups->next == NULL) {
-    printf("There are no suspended jobs.");
+    puts("There are no suspended jobs.");
     return;
   }
   pgid = pgroups->val;
-  if(DEBUG) {
+  pgroups_remove(pgid);
+#if DEBUG
     fprintf(stderr, "running pg %d...\n", pgid);
-  }
+#endif
   if (kill(-pgid, SIGCONT) < 0) {
     perror("bg_run.kill");
   }
-  /* TODO FIXME remove pgid from pgroups */
-  /*
-  while (1) {
-    int status;
-    int result = waitpid(-pgid, &status, 0);
-    if (result < 0) {
-      break;
-    }
-#if DEBUG
-    printf("bg_run: [%d] finished (status = %d)\n", result, status);
-#endif
-  }
-  */
 }
 
 void kill_defuncts(void) {
