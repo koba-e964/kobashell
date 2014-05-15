@@ -1,5 +1,6 @@
 #include "./kobash.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 int_list *int_list_new(void) {

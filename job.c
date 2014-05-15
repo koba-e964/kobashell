@@ -28,11 +28,13 @@ extern int wait_cont;
 /*
   list of all living process groups
 */
-int_list *pgroups;
+int_list *pgroups; /* Suspended process groups  */
+int_list *bgpg;    /* Background process groups */
 int cur_fg;
 
 void job_init(void) {
   pgroups = int_list_new();
+  bgpg = int_list_new();
   cur_fg = -1;
 }
 
@@ -48,6 +50,20 @@ void print_pgroups(void) {
 
 int pgroups_remove(pid_t pgid) {
   return int_list_remove(pgroups, pgid);
+}
+
+void bgpg_add(pid_t pgid) {
+  int_list_add(bgpg, pgid);
+}
+
+void print_bgpg(void) {
+  printf("bgpg: ");
+  int_list_print(bgpg);
+  puts("");
+}
+
+int bgpg_remove(pid_t pgid) {
+  return int_list_remove(bgpg, pgid);
 }
 
 void pg_wait(pid_t pgid);
@@ -175,6 +191,7 @@ void execute_job(job* job,char *const envp[]) {
       }
     }
     printf(")\n");
+    bgpg_add(group_id);
     int_list_free(pids);
     break;
   default:
@@ -182,6 +199,7 @@ void execute_job(job* job,char *const envp[]) {
   }
 #if DEBUG
   print_pgroups();
+  print_bgpg();
 #endif
 }
 
@@ -199,6 +217,7 @@ void bg_run(void) {
   if (kill(-pgid, SIGCONT) < 0) {
     perror("bg_run.kill");
   }
+  bgpg_add(pgid);
 }
 
 /*
@@ -207,18 +226,15 @@ void bg_run(void) {
 */
 void fg_run(void) {
   pid_t pgid;
-  if (pgroups->next == NULL) {
-    puts("There are no suspended jobs.");
+  if (bgpg->next == NULL) {
+    puts("There are no background jobs.");
     return;
   }
-  pgid = pgroups->val;
-  pgroups_remove(pgid);
+  pgid = bgpg->val;
+  bgpg_remove(pgid);
 #if DEBUG
-    fprintf(stderr, "running pg %d...\n", pgid);
+    fprintf(stderr, "moving pg %d to foreground...\n", pgid);
 #endif
-  if (kill(-pgid, SIGCONT) < 0) {
-    perror("fg_run.kill");
-  }
   pg_wait(pgid);
 }
 
@@ -248,7 +264,9 @@ void pg_wait(pid_t pgid) {
       fprintf(stderr, "(pgid = %d)\n", pgid);
       break;
     }
+#if DEBUG
     printf("pg_wait: pid = %d\n", result);
+#endif
     if (WIFSTOPPED(status)) {
       printf("STOPPED: pid = %d, groupid= %d\n", result, pgid);
       pgroups_add(pgid);
@@ -277,5 +295,6 @@ void kill_defuncts(void) {
       break;
     }
     printf("[terminated] pid = %d, status = %d\n", pid, status);
+    bgpg_remove(pid);
   }
 }
