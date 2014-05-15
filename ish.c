@@ -118,6 +118,10 @@ int main(int argc, char *const argv[], char *const envp[]) {
       bg_run();
       continue;
     }
+    if (! strcmp(line, "fg")) {
+      fg_run();
+      continue;
+    }
     curr_job = parse_line(line);
     while (curr_job != NULL) {
       execute_job(curr_job, envp);

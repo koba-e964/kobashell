@@ -236,7 +236,7 @@ void execute_job(job* job,char *const envp[]) {
 #endif
 }
 
-void bg_run() {
+void bg_run(void) {
   pid_t pgid;
   if (pgroups->next == NULL) {
     puts("There are no suspended jobs.");
@@ -249,6 +249,47 @@ void bg_run() {
 #endif
   if (kill(-pgid, SIGCONT) < 0) {
     perror("bg_run.kill");
+  }
+}
+void fg_run(void) {
+  pid_t pgid;
+  if (pgroups->next == NULL) {
+    puts("There are no suspended jobs.");
+    return;
+  }
+  pgid = pgroups->val;
+  pgroups_remove(pgid);
+#if DEBUG
+    fprintf(stderr, "running pg %d...\n", pgid);
+#endif
+  if (kill(-pgid, SIGCONT) < 0) {
+    perror("bg_run.kill");
+  }
+  tcsetpgrp(0, pgid);
+  while (1) {
+    int status;
+    int result = waitpid(-pgid, &status, WUNTRACED);
+    if (result < 0) {
+      if (errno == EINTR) {
+        // continue waiting
+#if DEBUG
+        printf("waitpid.cw\n");
+#endif
+        continue;
+      }
+      perror("fg_run.waitpid");
+      fprintf(stderr, "(pgid = %d)\n", pgid);
+      break;
+    }
+    printf("fg_run: pid = %d\n", result);
+    if (WIFSTOPPED(status)) {
+      printf("STOPPED: pid = %d, groupid= %d\n", result, pgid);
+      pgroups_add(pgid);
+      break;
+    }
+  }
+  if (tcsetpgrp(0, getpid()) < 0) { // set shell to be foreground
+    perror("execute_job.FOREGROUND.tcsetpgrp");
   }
 }
 
