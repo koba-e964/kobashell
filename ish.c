@@ -10,17 +10,8 @@
 int main(int argc, char *const argv[], char *const envp[]) {
   job *curr_job;
   char *line;
-#if DEBUG
-  {
-    int i = 0;
-    char * const * ptr = envp;
-    for (; *ptr; ++ptr, ++i) {
-      fprintf(stderr, "envp[%d] = \"%s\"\n", i, *ptr);
-    }
-  }
-#endif
-  init_path(envp); /* initialization in path.c */
 
+  init_path(envp); /* initialization in path.c */
   signal_init();
   job_init();
   {
