@@ -22,7 +22,6 @@ int CLOSE(int fd) {
 #endif
 
 void signal_init(void);
-extern int wait_cont;
 
 
 /*
@@ -30,12 +29,10 @@ extern int wait_cont;
 */
 int_list *pgroups; /* Suspended process groups  */
 int_list *bgpg;    /* Background process groups */
-int cur_fg;
 
 void job_init(void) {
   pgroups = int_list_new();
   bgpg = int_list_new();
-  cur_fg = -1;
 }
 
 void pgroups_add(pid_t pgid) {
@@ -122,7 +119,6 @@ void execute_job(job* job,char *const envp[]) {
   process *plist = job->process_list;
   int_list *pids, *pid_cur;
 
-  wait_cont = 1; // continue waiting if FOREGROUND
   pids = malloc(sizeof(int_list));
   pids->val = -1;
   pids->next = NULL;
@@ -221,8 +217,7 @@ void bg_run(void) {
 }
 
 /*
- TODO FIXME This resumes SUSPENDED process groups.
- This should make background process groups run in f
+ This makes background process groups run in f
 */
 void fg_run(void) {
   pid_t pgid;

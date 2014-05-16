@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int wait_cont = 0;
 
 void test_handler(int id) {
 #if DEBUG
@@ -49,7 +48,6 @@ void sigchld_action(int id, siginfo_t *info, void *param) {
 #endif // DEBUG
   switch(info->si_code) {
   case CLD_STOPPED:
-    wait_cont = 0; // shell does not wait for children
     break;
   default:
     break;
