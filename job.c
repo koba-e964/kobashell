@@ -27,46 +27,50 @@ void signal_init(void);
 /*
   list of all living process groups
 */
-int_list *pgroups; /* Suspended process groups  */
-int_list *bgpg;    /* Background process groups */
+static int_list *pgroups; /* Suspended process groups  */
+static int_list *bgpg;    /* Background process groups */
 
 void job_init(void) {
   pgroups = int_list_new();
   bgpg = int_list_new();
 }
 
-void pgroups_add(pid_t pgid) {
+static void pgroups_add(pid_t pgid) {
   int_list_add(pgroups, pgid);
 }
 
-void print_pgroups(void) {
+#if DEBUG
+static void print_pgroups(void) {
   printf("pgroups: ");
   int_list_print(pgroups);
   puts("");
 }
+#endif
 
-int pgroups_remove(pid_t pgid) {
+static int pgroups_remove(pid_t pgid) {
   return int_list_remove(pgroups, pgid);
 }
 
-void bgpg_add(pid_t pgid) {
+static void bgpg_add(pid_t pgid) {
   int_list_add(bgpg, pgid);
 }
 
-void print_bgpg(void) {
+#if DEBUG
+static void print_bgpg(void) {
   printf("bgpg: ");
   int_list_print(bgpg);
   puts("");
 }
+#endif
 
-int bgpg_remove(pid_t pgid) {
+static int bgpg_remove(pid_t pgid) {
   return int_list_remove(bgpg, pgid);
 }
 
-void pg_wait(pid_t pgid);
+static void pg_wait(pid_t pgid);
 
 
-void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id) {
+static void child(char *const *envp, int pre_fd, int pipefd[2], process *plist, int group_id) {
   int result;
   char *exec_name; /* the name of the executable */
   if (pre_fd != -2) {
@@ -228,7 +232,7 @@ void fg_run(void) {
   pgid = bgpg->val;
   bgpg_remove(pgid);
 #if DEBUG
-    fprintf(stderr, "moving pg %d to foreground...\n", pgid);
+  fprintf(stderr, "moving pg %d to foreground...\n", pgid);
 #endif
   pg_wait(pgid);
 }
@@ -237,7 +241,7 @@ void fg_run(void) {
   Waits for process group of id pgid.
   This is blocking.
 */
-void pg_wait(pid_t pgid) {
+static void pg_wait(pid_t pgid) {
   if (tcsetpgrp(0, pgid) < 0) {
     perror("pg_wait.tcsetpgrp(child)");
   }
@@ -290,6 +294,7 @@ void kill_defuncts(void) {
       break;
     }
     printf("[terminated] pid = %d, status = %d\n", pid, status);
+    /* If bgpg does not contain pid, this will do nothing. */
     bgpg_remove(pid);
   }
 }
