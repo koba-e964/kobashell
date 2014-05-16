@@ -3,7 +3,7 @@ CFLAGS = -O2 -Wall -DUSE_READLINE=0
 
 EXEC = bin/ish
 
-ISH_SRC =getline.c int_list.c ish.c job.c path.c parser/parse.c
+ISH_SRC =getline.c int_list.c ish.c job.c path.c signal.c parser/parse.c
 ISH_OBJS=$(ISH_SRC:.c=.o)
 
 .PHONY : all run clean cmake cmake-run

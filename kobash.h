@@ -56,4 +56,8 @@ void init_path(char *const envp[]);
 */
 char *search_path(char const *filename);
 
+
+/* signal.c */
+void signal_init(void);
+
 #endif
