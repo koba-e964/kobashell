@@ -33,6 +33,6 @@ add_executable(ish ish.c parser/parse.c getline.c int_list.c job.c path.c signal
 target_link_libraries(ish ${LIBS})
 set_target_properties(ish
     PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
 )
 
